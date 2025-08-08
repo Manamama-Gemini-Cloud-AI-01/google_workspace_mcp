@@ -2,9 +2,9 @@
   "dxt_version": "0.1",
   "name": "workspace-mcp",
   "display_name": "Google Workspace MCP",
-  "version": "1.1.9",
-  "description": "Full natural language control over Google Calendar, Drive, Gmail, Docs, Sheets, Slides, Forms, Tasks and Chat through all MCP clients, AI assistants and developer tools",
-  "long_description": "A production-ready MCP server that integrates all major Google Workspace services with AI assistants. Built with FastMCP for optimal performance, featuring advanced authentication handling, service caching, and streamlined development patterns.",
+  "version": "1.2.0",
+  "description": "Full natural language control over Google Calendar, Drive, Gmail, Docs, Sheets, Slides, Forms, Tasks, Chat and Custom Search through all MCP clients, AI assistants and developer tools",
+  "long_description": "A production-ready MCP server that integrates all major Google Workspace services with AI assistants. Includes Google PSE integration for custom web searches.",
   "author": {
     "name": "Taylor Wilsdon",
     "email": "taylor@taylorwilsdon.com",
@@ -28,12 +28,15 @@
       "env": {
         "GOOGLE_OAUTH_CLIENT_ID": "${user_config.GOOGLE_OAUTH_CLIENT_ID}",
         "GOOGLE_OAUTH_CLIENT_SECRET": "${user_config.GOOGLE_OAUTH_CLIENT_SECRET}",
+        "USER_GOOGLE_EMAIL": "${user_config.USER_GOOGLE_EMAIL}",
         "GOOGLE_OAUTH_REDIRECT_URI": "${user_config.GOOGLE_OAUTH_REDIRECT_URI}",
         "GOOGLE_CLIENT_SECRET_PATH": "${user_config.GOOGLE_CLIENT_SECRET_PATH}",
         "GOOGLE_CLIENT_SECRETS": "${user_config.GOOGLE_CLIENT_SECRETS}",
         "WORKSPACE_MCP_BASE_URI": "${user_config.WORKSPACE_MCP_BASE_URI}",
         "WORKSPACE_MCP_PORT": "${user_config.WORKSPACE_MCP_PORT}",
-        "OAUTHLIB_INSECURE_TRANSPORT": "${user_config.OAUTHLIB_INSECURE_TRANSPORT}"
+        "OAUTHLIB_INSECURE_TRANSPORT": "${user_config.OAUTHLIB_INSECURE_TRANSPORT}",
+        "GOOGLE_PSE_API_KEY": "${user_config.GOOGLE_PSE_API_KEY}",
+        "GOOGLE_PSE_ENGINE_ID": "${user_config.GOOGLE_PSE_ENGINE_ID}"
       }
     }
   },
@@ -91,6 +94,12 @@
       "display_name": "Google Tasks",
       "description": "Manage Google Tasks through AI with support for task creation, management, and organization",
       "category": "productivity"
+    },
+    {
+      "name": "google_custom_search",
+      "display_name": "Google Custom Search",
+      "description": "Perform custom web searches through AI using Google Programmable Search Engine with site-specific and filtered search capabilities",
+      "category": "search"
     }
   ],
   "user_config": {
@@ -113,6 +122,16 @@
       "sensitive": true,
       "validation": {
         "min_length": 24
+      }
+    },
+    "USER_GOOGLE_EMAIL": {
+      "type": "string",
+      "title": "User Google Email",
+      "description": "Optional default email for authentication flows. If set, the LLM won't need to specify your email when calling start_google_auth",
+      "required": false,
+      "sensitive": false,
+      "validation": {
+        "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+[.][a-zA-Z]{2,}$"
       }
     },
     "GOOGLE_OAUTH_REDIRECT_URI": {
@@ -179,6 +198,26 @@
           "default": false
         }
       }
+    },
+    "GOOGLE_PSE_API_KEY": {
+      "type": "string",
+      "title": "Google Custom Search API Key",
+      "description": "API key for Google Programmable Search Engine (Custom Search JSON API)",
+      "required": false,
+      "sensitive": true,
+      "validation": {
+        "min_length": 20
+      }
+    },
+    "GOOGLE_PSE_ENGINE_ID": {
+      "type": "string",
+      "title": "Google Custom Search Engine ID",
+      "description": "Programmable Search Engine ID (cx parameter) from Google Custom Search Engine Control Panel",
+      "required": false,
+      "sensitive": false,
+      "validation": {
+        "pattern": "^[a-zA-Z0-9:_-]+$"
+      }
     }
   },
   "permissions": {
@@ -206,6 +245,9 @@
     "sheets",
     "chat",
     "tasks",
+    "search",
+    "custom-search",
+    "programmable-search",
     "oauth",
     "productivity",
     "ai-assistant"
