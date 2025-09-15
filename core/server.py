@@ -15,7 +15,7 @@ from auth.mcp_session_middleware import MCPSessionMiddleware
 from auth.oauth_responses import create_error_response, create_success_response, create_server_error_response
 from auth.auth_info_middleware import AuthInfoMiddleware
 from auth.fastmcp_google_auth import GoogleWorkspaceAuthProvider
-from auth.scopes import SCOPES
+from auth.scopes import SCOPES, get_current_scopes # noqa
 from core.config import (
     USER_GOOGLE_EMAIL,
     get_transport_mode,
@@ -65,7 +65,7 @@ server.add_middleware(auth_info_middleware)
 def set_transport_mode(mode: str):
     """Sets the transport mode for the server."""
     _set_transport_mode(mode)
-    logger.info(f"🔌 Transport: {mode}")
+    logger.info(f"Transport: {mode}")
 
 def configure_server_for_http():
     """
@@ -88,7 +88,7 @@ def configure_server_for_http():
 
     if oauth21_enabled:
         if not config.is_configured():
-            logger.warning("⚠️  OAuth 2.1 enabled but OAuth credentials not configured")
+            logger.warning("OAuth 2.1 enabled but OAuth credentials not configured")
             return
 
         if not GOOGLE_REMOTE_AUTH_AVAILABLE:
@@ -99,7 +99,7 @@ def configure_server_for_http():
                 "Please reinstall dependencies using 'uv sync --frozen'."
             )
         
-        logger.info("🔐 OAuth 2.1 enabled with automatic OAuth 2.0 fallback for legacy clients")
+        logger.info("OAuth 2.1 enabled with automatic OAuth 2.0 fallback for legacy clients")
         try:
             _auth_provider = GoogleRemoteAuthProvider()
             server.auth = _auth_provider
@@ -153,7 +153,7 @@ async def oauth2_callback(request: Request) -> HTMLResponse:
         logger.info(f"OAuth callback: Received code (state: {state}).")
 
         verified_user_id, credentials = handle_auth_callback(
-            scopes=SCOPES,
+            scopes=get_current_scopes(),
             authorization_response=str(request.url),
             redirect_uri=get_oauth_redirect_uri_for_current_mode(),
             session_id=None

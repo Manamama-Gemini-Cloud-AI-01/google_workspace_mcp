@@ -26,6 +26,9 @@ class OAuthConfig:
         self.base_uri = os.getenv("WORKSPACE_MCP_BASE_URI", "http://localhost")
         self.port = int(os.getenv("PORT", os.getenv("WORKSPACE_MCP_PORT", "8000")))
         self.base_url = f"{self.base_uri}:{self.port}"
+        
+        # External URL for reverse proxy scenarios
+        self.external_url = os.getenv("WORKSPACE_EXTERNAL_URL")
 
         # OAuth client configuration
         self.client_id = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
@@ -35,6 +38,11 @@ class OAuthConfig:
         self.oauth21_enabled = os.getenv("MCP_ENABLE_OAUTH21", "false").lower() == "true"
         self.pkce_required = self.oauth21_enabled  # PKCE is mandatory in OAuth 2.1
         self.supported_code_challenge_methods = ["S256", "plain"] if not self.oauth21_enabled else ["S256"]
+        
+        # Stateless mode configuration
+        self.stateless_mode = os.getenv("WORKSPACE_MCP_STATELESS_MODE", "false").lower() == "true"
+        if self.stateless_mode and not self.oauth21_enabled:
+            raise ValueError("WORKSPACE_MCP_STATELESS_MODE requires MCP_ENABLE_OAUTH21=true")
 
         # Transport mode (will be set at runtime)
         self._transport_mode = "stdio"  # Default
@@ -112,10 +120,15 @@ class OAuthConfig:
     def get_oauth_base_url(self) -> str:
         """
         Get OAuth base URL for constructing OAuth endpoints.
+        
+        Uses WORKSPACE_EXTERNAL_URL if set (for reverse proxy scenarios),
+        otherwise falls back to constructed base_url with port.
 
         Returns:
             Base URL for OAuth endpoints
         """
+        if self.external_url:
+            return self.external_url
         return self.base_url
 
     def validate_redirect_uri(self, uri: str) -> bool:
@@ -140,6 +153,8 @@ class OAuthConfig:
         """
         return {
             "base_url": self.base_url,
+            "external_url": self.external_url,
+            "effective_oauth_url": self.get_oauth_base_url(),
             "redirect_uri": self.redirect_uri,
             "client_configured": bool(self.client_id),
             "oauth21_enabled": self.oauth21_enabled,
@@ -232,11 +247,12 @@ class OAuthConfig:
         Returns:
             Authorization server metadata dictionary
         """
+        oauth_base = self.get_oauth_base_url()
         metadata = {
-            "issuer": self.base_url,
-            "authorization_endpoint": f"{self.base_url}/oauth2/authorize",
-            "token_endpoint": f"{self.base_url}/oauth2/token",
-            "registration_endpoint": f"{self.base_url}/oauth2/register",
+            "issuer": oauth_base,
+            "authorization_endpoint": f"{oauth_base}/oauth2/authorize",
+            "token_endpoint": f"{oauth_base}/oauth2/token",
+            "registration_endpoint": f"{oauth_base}/oauth2/register",
             "jwks_uri": "https://www.googleapis.com/oauth2/v3/certs",
             "response_types_supported": ["code", "token"],
             "grant_types_supported": ["authorization_code", "refresh_token"],
@@ -329,3 +345,8 @@ def is_oauth21_enabled() -> bool:
 def get_oauth_redirect_uri() -> str:
     """Get the primary OAuth redirect URI."""
     return get_oauth_config().redirect_uri
+
+
+def is_stateless_mode() -> bool:
+    """Check if stateless mode is enabled."""
+    return get_oauth_config().stateless_mode
